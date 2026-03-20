@@ -1,0 +1,12 @@
+Day 1 Summary
+
+- Set up a dedicated YOLO project structure on Windows
+- Created and activated a Python virtual environment
+- Installed Ultralytics, OpenCV, matplotlib, and PyYAML
+- Verified setup with yolo checks
+- Downloaded a BDD100K-style dataset from Roboflow in YOLO format
+- Reorganized the dataset into project-specific train/validation image and label folders
+- Verified image-label count consistency
+- Recovered the semantic mapping of class IDs from dataset annotations
+- Wrote the final data.yaml with 10 traffic-scene object classes
+- Started baseline YOLO11n training with pretrained weights on CPU

@@ -1,0 +1,15 @@
+path: data/traffic_detection
+train: images/train
+val: images/val
+
+names:
+  0: car
+  1: bus
+  2: pedestrian
+  3: bicycle
+  4: truck
+  5: motorcycle
+  6: train
+  7: rider
+  8: traffic-sign
+  9: traffic-light

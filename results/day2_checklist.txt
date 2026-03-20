@@ -1,0 +1,12 @@
+Day 2 Checklist
+
+1. Check training output folder
+2. Open results plots
+3. Record precision, recall, mAP50, mAP50-95
+4. Identify best.pt and last.pt
+5. Run inference on validation images
+6. Save 10-15 result images
+7. Inspect false positives
+8. Inspect missed detections
+9. Note strongest and weakest classes
+10. Update README with results

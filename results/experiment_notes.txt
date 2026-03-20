@@ -1,0 +1,31 @@
+Run name: baseline_better
+Model: yolo11n.pt
+Epochs: 6
+Image size: 512
+Batch size: 8
+Dataset fraction: 0.35
+Dataset: BDD100K-style Roboflow export
+
+Final Metrics:
+Precision: 0.45467
+Recall: 0.19987
+mAP50: 0.19919
+mAP50-95: 0.10809
+
+Observations:
+- Improved over the fast baseline with more data and more epochs.
+- Recall and mAP improved noticeably, indicating better overall detection quality.
+- Precision dropped slightly, suggesting more false positives while detecting more objects.
+- The model became more useful as a practical baseline for qualitative inference and error analysis.
+- This run is the best candidate for the final project result on the current laptop setup.
+
+Failure cases:
+- Small objects such as traffic signs and traffic lights remain challenging.
+- Rare classes are still likely under-learned due to class imbalance.
+- Some classes may still suffer from false positives and missed detections under limited training budget.
+
+Inference:
+- Ran inference successfully on the validation image set using best.pt.
+- Output images were saved to runs/detect/results/infer_better.
+- Qualitative inspection showed strongest performance on cars and moderate performance on pedestrians, traffic signs, and traffic lights.
+- Failure cases remained more visible for rare classes and small distant objects.

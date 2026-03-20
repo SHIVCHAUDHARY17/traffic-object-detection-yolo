@@ -1,0 +1,35 @@
+Qualitative Analysis
+
+Good Examples
+
+1. good_01_...
+Reason: The model correctly detected all three cars and one pedestrian in a clear daylight scene, with well-aligned bounding boxes.
+
+2. good_02_...
+Reason: The model detected all visible cars and the truck correctly, and it also successfully detected a small traffic sign.
+
+3. good_03_...
+Reason: The model correctly detected a pedestrian, traffic sign, truck, and car in the same scene, showing good multi-class detection performance.
+
+4. good_04_...
+Reason: Most relevant objects were detected correctly, including small traffic lights and traffic signs. There were a few false positives where normal posters or sign-like objects were also detected as traffic signs.
+
+5. good_05_...
+Reason: The model showed good nighttime performance similar to daytime scenes. Traffic signs were detected especially well at night, likely because reflective surfaces made them more visually prominent.
+
+Failure Examples
+
+1. fail_01_...
+Issue: The model made a major false positive by detecting a side wall or roadside structure as a large bus.
+
+2. fail_02_...
+Issue: In a nighttime scene, the model missed a car and also failed to detect a large truck.
+
+3. fail_03_...
+Issue: Small and rare classes such as rider and motorcycle were missed, and traffic signs were also not detected even in a clear daylight scene.
+
+4. fail_04_...
+Issue: In a parking-area scene, the model failed to detect parked cars, showing weak performance in static dense parking layouts.
+
+5. fail_05_...
+Issue: A rider was misclassified as a car, and pedestrians in the scene were missed.
