@@ -1,3 +1,4 @@
+
 # Traffic Object Detection for Road-Scene Perception using YOLO
 
 ## Overview
@@ -54,13 +55,6 @@ My prior profile was already stronger in **semantic segmentation**, especially t
 - real validation and inference workflow  
 - class-wise metric interpretation  
 - qualitative failure analysis  
-
-This makes the project highly relevant for junior-level roles in:
-
-- computer vision  
-- machine learning  
-- automotive perception  
-- robotics perception  
 
 ---
 
@@ -140,7 +134,7 @@ Used for reading and writing the dataset configuration file (`data.yaml`).
 
 ## Project Structure
 
-```
+```text
 traffic-object-detection-yolo/
 ├── README.md
 ├── requirements.txt
@@ -165,15 +159,21 @@ traffic-object-detection-yolo/
 │   ├── day2_checklist.txt
 │   ├── qualitative_analysis.txt
 │   ├── selected_good/
-│   └── selected_failures/
+│   ├── selected_failures/
+│   ├── example1_before.jpg
+│   ├── example1_after.jpg
+│   ├── example2_before.jpg
+│   └── example2_after.jpg
 └── runs/
     └── detect/
         └── results/
             ├── baseline_fast/
             ├── baseline_better/
+            ├── baseline_full_6epoch/
             ├── infer_better/
+            ├── infer_full_6epoch/
             └── docker_infer/
-```
+````
 
 ---
 
@@ -185,16 +185,16 @@ The project was developed locally on Windows using a dedicated Python virtual en
 
 A virtual environment keeps project dependencies isolated from the rest of the system. This is important because:
 
-- package versions do not conflict with other projects  
-- the setup is cleaner and more reproducible  
-- project dependencies can be captured in `requirements.txt`  
+* package versions do not conflict with other projects
+* the setup is cleaner and more reproducible
+* project dependencies can be captured in `requirements.txt`
 
 ### Setup Steps
 
-1. Create project folder structure  
-2. Create and activate `.venv`  
-3. Install required packages  
-4. Verify YOLO installation with `yolo checks`  
+1. Create project folder structure
+2. Create and activate `.venv`
+3. Install required packages
+4. Verify YOLO installation with `yolo checks`
 
 ---
 
@@ -210,7 +210,7 @@ The dataset was downloaded from Roboflow in YOLO-compatible format.
 
 The dataset was copied into the project-specific folder structure:
 
-```
+```text
 data/traffic_detection/
 ├── images/train
 ├── images/val
@@ -222,8 +222,8 @@ data/traffic_detection/
 
 The number of image files and label files was checked carefully:
 
-- train images = 7987, train labels = 7987  
-- val images = 1997, val labels = 1997  
+* train images = 7987, train labels = 7987
+* val images = 1997, val labels = 1997
 
 This ensured that every image had a corresponding label file.
 
@@ -257,46 +257,47 @@ names:
 
 YOLO training in this project means:
 
-- loading a pretrained detection model  
-- replacing its original detection head with one that matches the custom dataset classes  
-- learning to predict bounding boxes and class labels for the 10 target traffic-scene classes  
+* loading a pretrained detection model
+* replacing its original detection head with one that matches the custom dataset classes
+* learning to predict bounding boxes and class labels for the 10 target traffic-scene classes
 
-The pretrained model used was:  
+The pretrained model used was:
 `yolo11n.pt` (the nano version of YOLO11 – lightweight, fast, suitable for CPU-only experimentation).
 
 ### What the Main Training Parameters Mean
 
-- **epochs** – number of full passes through the training data.  
+* **epochs** – number of full passes through the training data.
   Example: `epochs=3` means the model sees the full selected dataset 3 times.
 
-- **imgsz** – training image size.  
-  Example: `imgsz=512` means images are resized to 512 for training and inference.  
+* **imgsz** – training image size.
+  Example: `imgsz=512` means images are resized to 512 for training and inference.
   *Smaller image size = faster training, less computation, but may reduce small-object detection performance.*
 
-- **batch** – number of images processed in one training step.  
+* **batch** – number of images processed in one training step.
   Example: `batch=8`
 
-- **fraction** – fraction of the dataset used during training.  
-  Example: `fraction=0.2` means use 20% of the training set.  
-  *Very important for CPU-based experimentation because full-data training was too slow.*
+* **fraction** – fraction of the dataset used during training.
+  Example: `fraction=0.2` means use 20% of the training set.
+  *This was useful in the initial CPU-based experiments because full-data training was too slow for quick iteration.*
 
-- **project** and **name** – control where the run outputs are saved.  
+* **project** and **name** – control where the run outputs are saved.
   Example: `project=results name=baseline_fast`
 
 ---
 
 ## Training Strategy
 
-The project was trained in two main completed runs.
+The project began with fraction-based baseline runs because full-data CPU training was initially too slow for quick experimentation. After that, I also ran a full-data comparison with the same epoch budget to better understand the practical effect of dataset usage on detection quality.
 
-### Why Two Runs Were Used
+### Why These Runs Were Used
 
-The original full-data attempt was too slow on CPU, so the practical strategy became:
+The practical training workflow became:
 
-1. Run a fast baseline to validate the pipeline end-to-end  
-2. Run a stronger improved baseline with more training budget  
+1. Run a fast baseline to validate the pipeline end-to-end
+2. Run a stronger fraction-based baseline with more training budget
+3. Run a full-data comparison with the same epoch count to observe the effect of removing `fraction`
 
-This reflects a realistic engineering workflow: first validate correctness, then improve quality.
+This reflects a realistic engineering workflow: first validate correctness, then improve quality, then test practical assumptions through direct comparison.
 
 ### Training Commands
 
@@ -306,16 +307,30 @@ This reflects a realistic engineering workflow: first validate correctness, then
 yolo detect train data=.\data.yaml model=yolo11n.pt epochs=3 imgsz=512 batch=8 fraction=0.2 project=results name=baseline_fast
 ```
 
-**Improved Baseline**
+**Improved Fraction-Based Baseline**
 
 ```bash
 yolo detect train data=.\data.yaml model=yolo11n.pt epochs=6 imgsz=512 batch=8 fraction=0.35 project=results name=baseline_better
 ```
 
-### Inference Using the Final Model
+**Full-Data Comparison Run**
+
+```bash
+yolo detect train data=.\data.yaml model=yolo11n.pt epochs=6 imgsz=512 batch=8 project=results name=baseline_full_6epoch
+```
+
+### Inference Commands
+
+**Inference using the fraction-based model**
 
 ```bash
 yolo detect predict model=".\runs\detect\results\baseline_better\weights\best.pt" source=".\data\traffic_detection\images\val" conf=0.25 imgsz=512 save=True project=results name=infer_better
+```
+
+**Inference using the full-data comparison model**
+
+```bash
+yolo detect predict model=".\runs\detect\results\baseline_full_6epoch\weights\best.pt" source=".\data\traffic_detection\images\val" conf=0.25 imgsz=512 save=True project=results name=infer_full_6epoch
 ```
 
 ---
@@ -323,127 +338,214 @@ yolo detect predict model=".\runs\detect\results\baseline_better\weights\best.pt
 ## Experimental Results
 
 ### Run 1: `baseline_fast`
-- Model: `yolo11n.pt`  
-- Epochs: 3  
-- Image size: 512  
-- Batch size: 8  
-- Dataset fraction: 0.2  
 
-| Metric      | Value   |
-|-------------|---------|
-| Precision   | 0.522   |
-| Recall      | 0.152   |
-| mAP50       | 0.134   |
-| mAP50-95    | 0.0707  |
+* Model: `yolo11n.pt`
+* Epochs: 3
+* Image size: 512
+* Batch size: 8
+* Dataset fraction: 0.2
 
-### Run 2: `baseline_better` (Final Model)
-- Model: `yolo11n.pt`  
-- Epochs: 6  
-- Image size: 512  
-- Batch size: 8  
-- Dataset fraction: 0.35  
+| Metric    | Value  |
+| --------- | ------ |
+| Precision | 0.522  |
+| Recall    | 0.152  |
+| mAP50     | 0.134  |
+| mAP50-95  | 0.0707 |
 
-| Metric      | Value     |
-|-------------|-----------|
-| Precision   | 0.45467   |
-| Recall      | 0.19987   |
-| mAP50       | 0.19919   |
-| mAP50-95    | 0.10809   |
+### Run 2: `baseline_better`
+
+* Model: `yolo11n.pt`
+* Epochs: 6
+* Image size: 512
+* Batch size: 8
+* Dataset fraction: 0.35
+
+| Metric    | Value   |
+| --------- | ------- |
+| Precision | 0.45467 |
+| Recall    | 0.19987 |
+| mAP50     | 0.19919 |
+| mAP50-95  | 0.10809 |
+
+### Run 3: `baseline_full_6epoch`
+
+* Model: `yolo11n.pt`
+* Epochs: 6
+* Image size: 512
+* Batch size: 8
+* Dataset fraction: full data
+
+| Metric    | Value |
+| --------- | ----- |
+| Precision | 0.365 |
+| Recall    | 0.238 |
+| mAP50     | 0.235 |
+| mAP50-95  | 0.125 |
+
+---
+
+## Additional Practical Comparison: Fraction-Based vs Full-Data Training
+
+After completing the earlier fraction-based experiments, I also trained a comparable model using the **full training dataset** with the same epoch budget (**6 epochs**) to better understand the practical effect of dataset fraction on model quality.
+
+This was not intended as a formal research comparison, but as a hands-on learning exercise. The goal was to verify through implementation how training on more data changes detection quality, especially on scenes that previously showed weak performance.
+
+### Compared Runs
+
+| Run                    | Epochs | Data Usage           | Precision | Recall  | mAP50   | mAP50-95 |
+| ---------------------- | ------ | -------------------- | --------- | ------- | ------- | -------- |
+| `baseline_better`      | 6      | 35% of training data | 0.45467   | 0.19987 | 0.19919 | 0.10809  |
+| `baseline_full_6epoch` | 6      | Full training data   | 0.365     | 0.238   | 0.235   | 0.125    |
+
+### Practical Observation
+
+The full-data run improved **recall**, **mAP50**, and **mAP50-95** compared with the earlier fraction-based run, even though precision decreased slightly. This suggests that training on the full dataset helped the model detect more relevant objects overall and improved general detection quality.
+
+From a practical learning perspective, this comparison was useful because it showed directly that changing dataset usage can have a meaningful effect on detection performance, especially on difficult scenes and previously weak examples.
+
+### Qualitative Comparison
+
+I also revisited several failure examples from the earlier run and observed visible improvements in the full-data model. In multiple cases, objects that were previously missed or weakly detected were detected more reliably after training on the full dataset.
+
+The purpose of this comparison was not to claim a novel result, but to strengthen practical understanding through experimentation and direct observation.
+
+### Example 1: Improvement on a Previously Weak Scene
+
+**Fraction-based run (`baseline_better`)**
+
+![Example 1 before](results/example1_before.jpg)
+
+**Full-data run (`baseline_full_6epoch`)**
+
+![Example 1 after](results/example1_after.jpg)
+
+This example shows that the full-data model detected more relevant objects than the earlier fraction-based run, reducing missed detections in a scene that had previously been weak.
+
+### Example 2: Improved Detection Coverage After Full-Data Training
+
+**Fraction-based run (`baseline_better`)**
+
+![Example 2 before](results/example2_before.jpg)
+
+**Full-data run (`baseline_full_6epoch`)**
+
+![Example 2 after](results/example2_after.jpg)
+
+In this case, the full-data run produced more reliable detections than the earlier run. This comparison was included to better understand the practical effect of training on more data, rather than to claim a novel research finding.
 
 ---
 
 ## Understanding the Evaluation Metrics
 
-- **Precision**: Out of all predicted objects, how many were correct? Higher precision means fewer false positives.  
-- **Recall**: Out of all real ground-truth objects, how many were found by the model? Higher recall means fewer missed detections.  
-- **mAP50**: Mean Average Precision at IoU 0.50 – detection quality with a moderate overlap requirement.  
-- **mAP50-95**: A stricter and more comprehensive metric, averaged across multiple IoU thresholds. Harder to score well on and gives a better sense of true detector quality.
+* **Precision**: Out of all predicted objects, how many were correct? Higher precision means fewer false positives.
+* **Recall**: Out of all real ground-truth objects, how many were found by the model? Higher recall means fewer missed detections.
+* **mAP50**: Mean Average Precision at IoU 0.50 – detection quality with a moderate overlap requirement.
+* **mAP50-95**: A stricter and more comprehensive metric, averaged across multiple IoU thresholds. Harder to score well on and gives a better sense of true detector quality.
 
 ### Interpretation of This Project’s Results
 
-The improved run increased recall, mAP50, and mAP50-95. This means the stronger run was better at finding objects overall and gave better detection quality, even though precision dropped slightly. That slight precision drop likely means the model found more objects but also made more false positives – a common trade-off in detection systems.
+The earlier fraction-based improved run already increased recall, mAP50, and mAP50-95 compared with the fast baseline. The later full-data 6-epoch run improved recall and both mAP metrics further, showing that using more data at the same epoch budget can improve detection quality in practice.
+
+The slight precision drop in the full-data run likely means the model detected more objects overall, but also produced more false positives. This is a common trade-off in detection systems.
 
 ---
 
 ## Key Observations
 
-- The improved run increased recall and both mAP metrics compared with the fast baseline.  
-- Car detection was the strongest among all classes.  
-- Traffic signs and traffic lights showed moderate detection performance.  
-- Rare classes such as rider, bicycle, motorcycle, and train remained challenging.  
-- Small and distant objects were harder to detect reliably.  
+* The improved fraction-based run increased recall and both mAP metrics compared with the fast baseline.
+* The later full-data 6-epoch run improved recall, mAP50, and mAP50-95 further.
+* Car detection was the strongest among all classes.
+* Traffic signs and traffic lights showed moderate detection performance.
+* Rare classes such as rider, bicycle, motorcycle, and train remained challenging.
+* Small and distant objects were harder to detect reliably.
 
 ### Why Car Detection Was Strongest
 
-Cars had:  
-- many more training examples  
-- more visual consistency  
-- larger representation in urban scenes  
+Cars had:
+
+* many more training examples
+* more visual consistency
+* larger representation in urban scenes
 
 This made them easier for the model to learn than rare classes.
 
 ### Why Some Classes Remained Weak
 
-Classes such as rider, motorcycle, bicycle, and train likely remained weak because of:  
-- lower class frequency  
-- smaller object sizes  
-- more visual variability  
-- limited training budget  
+Classes such as rider, motorcycle, bicycle, and train likely remained weak because of:
+
+* lower class frequency
+* smaller object sizes
+* more visual variability
+* limited training budget
 
 ---
 
 ## Qualitative Evaluation
 
-Selected prediction examples were reviewed manually, including 5 strong examples and 5 failure cases.
+Selected prediction examples were reviewed manually, including 5 strong examples and 5 failure cases in the earlier runs, followed by a targeted re-check of previous weak examples after the full-data training run.
 
 ### Main Strengths
 
-- Strong performance on cars and other common traffic participants.  
-- Good detection quality in clear daylight scenes.  
-- Reasonable detection of small traffic signs and traffic lights in some scenes.  
-- Stable performance in several nighttime scenes, especially for reflective traffic signs.
+* Strong performance on cars and other common traffic participants.
+* Good detection quality in clear daylight scenes.
+* Reasonable detection of small traffic signs and traffic lights in some scenes.
+* Stable performance in several nighttime scenes, especially for reflective traffic signs.
 
 ### Main Failure Modes
 
-- False positives on visually similar roadside structures.  
-- Missed detections in some nighttime scenes.  
-- Weak performance on rare classes such as rider and motorcycle.  
-- Difficulty with parked vehicles and crowded static layouts.  
-- Occasional confusion between rider and car.
+* False positives on visually similar roadside structures.
+* Missed detections in some nighttime scenes.
+* Weak performance on rare classes such as rider and motorcycle.
+* Difficulty with parked vehicles and crowded static layouts.
+* Occasional confusion between rider and car.
 
 ### Examples From Qualitative Analysis
 
-**Good Examples**  
-- The model correctly detected all three cars and one pedestrian in a clear daylight scene, with well-aligned bounding boxes.  
-- The model detected all visible cars and the truck correctly, and it also successfully detected a small traffic sign.  
-- The model correctly detected a pedestrian, traffic sign, truck, and car in the same scene, showing good multi-class detection performance.  
-- Most relevant objects were detected correctly, including small traffic lights and traffic signs. There were a few false positives where normal posters or sign-like objects were also detected as traffic signs.  
-- The model showed good nighttime performance similar to daytime scenes. Traffic signs were detected especially well at night, likely because reflective surfaces made them more visually prominent.
+**Good Examples**
 
-**Failure Examples**  
-- The model made a major false positive by detecting a side wall or roadside structure as a large bus.  
-- In a nighttime scene, the model missed a car and also failed to detect a large truck.  
-- Small and rare classes such as rider and motorcycle were missed, and traffic signs were also not detected even in a clear daylight scene.  
-- In a parking-area scene, the model failed to detect parked cars, showing weak performance in static dense parking layouts.  
-- A rider was misclassified as a car, and pedestrians in the scene were missed.
+* The model correctly detected all three cars and one pedestrian in a clear daylight scene, with well-aligned bounding boxes.
+* The model detected all visible cars and the truck correctly, and it also successfully detected a small traffic sign.
+* The model correctly detected a pedestrian, traffic sign, truck, and car in the same scene, showing good multi-class detection performance.
+* Most relevant objects were detected correctly, including small traffic lights and traffic signs. There were a few false positives where normal posters or sign-like objects were also detected as traffic signs.
+* The model showed good nighttime performance similar to daytime scenes. Traffic signs were detected especially well at night, likely because reflective surfaces made them more visually prominent.
+
+**Failure Examples**
+
+* The model made a major false positive by detecting a side wall or roadside structure as a large bus.
+* In a nighttime scene, the model missed a car and also failed to detect a large truck.
+* Small and rare classes such as rider and motorcycle were missed, and traffic signs were also not detected even in a clear daylight scene.
+* In a parking-area scene, the model failed to detect parked cars, showing weak performance in static dense parking layouts.
+* A rider was misclassified as a car, and pedestrians in the scene were missed.
 
 ---
 
 ## Inference Performance
 
-Inference was run on the full validation image set using the final model:
+Inference was run on the validation image set using the trained models.
 
-- Model: `baseline_better/weights/best.pt`  
-- Image size: 512  
-- Confidence threshold: 0.25  
+**Fraction-based run (`baseline_better`)**
 
-Approximate per-image speed on CPU:
+* Model: `baseline_better/weights/best.pt`
+* Image size: 512
+* Confidence threshold: 0.25
+* Approximate per-image speed on CPU:
 
-- Preprocess: 1.7 ms  
-- Inference: 43.1 ms  
-- Postprocess: 0.7 ms  
+  * Preprocess: 1.7 ms
+  * Inference: 43.1 ms
+  * Postprocess: 0.7 ms
 
-This shows that the model can produce predictions reasonably quickly even on CPU, although training remains much slower.
+**Full-data run (`baseline_full_6epoch`)**
+
+* Model: `baseline_full_6epoch/weights/best.pt`
+* Image size: 512
+* Confidence threshold: 0.25
+* Approximate per-image speed on CPU:
+
+  * Preprocess: 1.7 ms
+  * Inference: 61.5 ms
+  * Postprocess: 1.3 ms
+
+These runs show that the model can produce predictions reasonably quickly even on CPU, although training remains much slower.
 
 ---
 
@@ -453,22 +555,24 @@ This project was valuable not only because it produced a trained model, but beca
 
 ### Technical Understanding Gained
 
-- how YOLO-format datasets are organized  
-- how image and label pairs must align exactly  
-- how class IDs and semantic class names are mapped  
-- how pretrained detection models are adapted to new class counts  
-- how to use dataset fractions and reduced image sizes for faster experimentation  
-- how to interpret precision, recall, and mAP  
-- how to compare runs meaningfully rather than relying on a single number  
-- how to complement quantitative metrics with qualitative failure analysis  
+* how YOLO-format datasets are organized
+* how image and label pairs must align exactly
+* how class IDs and semantic class names are mapped
+* how pretrained detection models are adapted to new class counts
+* how to use dataset fractions and reduced image sizes for faster experimentation
+* how to interpret precision, recall, and mAP
+* how to compare runs meaningfully rather than relying on a single number
+* how to complement quantitative metrics with qualitative failure analysis
+* how training on more data can improve detection coverage in practice, even when the epoch budget stays the same
 
 ### Practical Engineering Understanding Gained
 
-- building a project in a structured and reproducible way matters  
-- metadata quality is as important as raw data availability  
-- fast baseline experiments are useful before expensive full runs  
-- CPU-only training requires pragmatic compromises  
-- a good project should explain not only results, but also assumptions, limitations, and next steps  
+* building a project in a structured and reproducible way matters
+* metadata quality is as important as raw data availability
+* fast baseline experiments are useful before expensive full runs
+* CPU-only training requires pragmatic compromises
+* a good project should explain not only results, but also assumptions, limitations, and next steps
+* practical learning often comes from testing simple training decisions directly rather than only reading about them
 
 ---
 
@@ -476,11 +580,12 @@ This project was valuable not only because it produced a trained model, but beca
 
 This project has several limitations:
 
-- Training was done on CPU only, which restricted the overall training budget.  
-- The final model was trained on a fraction of the dataset, not the full training set.  
-- Rare classes remained under-learned.  
-- Small object detection is still weak in difficult scenes.  
-- The model is a practical baseline, not a highly optimized final detector.
+* Training was done on CPU only, which restricted the overall training budget.
+* The strongest fraction-based model was trained on only part of the dataset.
+* Even the full-data comparison run was limited to 6 epochs, so it is still not a fully optimized final detector.
+* Rare classes remained under-learned.
+* Small object detection is still weak in difficult scenes.
+* The model is a practical baseline, not a highly optimized final detector.
 
 These limitations are important because they explain why the project should be understood as a strong practical baseline rather than a production-level system.
 
@@ -490,13 +595,13 @@ These limitations are important because they explain why the project should be u
 
 Possible next steps include:
 
-- train for more epochs using stronger hardware  
-- use a larger dataset fraction or the full training set  
-- compare YOLO11n with a larger model variant  
-- perform class-wise balancing or targeted data filtering  
-- benchmark performance under challenging conditions such as blur, low light, and clutter  
-- integrate the detector into a ROS 2 perception node  
-- combine detection with tracking for a multi-object tracking pipeline  
+* train for more epochs using stronger hardware
+* use a larger training budget on the full dataset
+* compare YOLO11n with a larger model variant
+* perform class-wise balancing or targeted data filtering
+* benchmark performance under challenging conditions such as blur, low light, and clutter
+* integrate the detector into a ROS 2 perception node
+* combine detection with tracking for a multi-object tracking pipeline
 
 ---
 
@@ -522,17 +627,17 @@ docker run --rm -v "${PWD}:/app" traffic-object-detection-yolo
 
 ### What This Docker Setup Does
 
-- builds a reproducible Python environment inside a container  
-- installs the required dependencies  
-- loads the trained YOLO model  
-- runs inference on selected example images  
-- saves outputs back into the local project folder through a mounted volume  
+* builds a reproducible Python environment inside a container
+* installs the required dependencies
+* loads the trained YOLO model
+* runs inference on selected example images
+* saves outputs back into the local project folder through a mounted volume
 
 ### Docker-Related Files
 
-- `Dockerfile`  
-- `.dockerignore`  
-- `requirements-docker.txt`  
+* `Dockerfile`
+* `.dockerignore`
+* `requirements-docker.txt`
 
 *This Docker setup was designed mainly for inference reproducibility, not for long CPU-based training.*
 
@@ -542,14 +647,16 @@ docker run --rm -v "${PWD}:/app" traffic-object-detection-yolo
 
 This project established a complete traffic-object detection workflow, including:
 
-- dataset preparation  
-- class-mapping validation  
-- YOLO training  
-- quantitative evaluation  
-- inference  
-- qualitative failure analysis  
+* dataset preparation
+* class-mapping validation
+* YOLO training
+* quantitative evaluation
+* inference
+* qualitative failure analysis
+* Docker-based reproducible inference
+* a practical follow-up comparison between fraction-based and full-data training
 
-The improved baseline demonstrated measurable gains over the initial fast run and provides a solid foundation for future work using longer training schedules, larger dataset fractions, or stronger hardware.
+The improved baseline demonstrated measurable gains over the initial fast run, and the later full-data comparison showed that increasing dataset usage can improve detection coverage and overall quality in practice.
 
 Overall, the project successfully broadened my practical computer vision profile beyond semantic segmentation by adding hands-on experience in object detection, training workflow design, evaluation, failure analysis, and basic Docker-based reproducibility.
 
@@ -557,13 +664,30 @@ Overall, the project successfully broadened my practical computer vision profile
 
 ## Files of Interest
 
-- **Final Model**: `runs/detect/results/baseline_better/weights/best.pt`  
-- **Comparison Run**: `runs/detect/results/baseline_fast/`  
-- **Inference Outputs**:  
-  - `runs/detect/results/infer_better/`  
-  - `runs/detect/results/docker_infer/`  
-- **Docker Files**:  
-  - `Dockerfile`  
-  - `.dockerignore`  
-  - `requirements-docker.txt`  
-- **Notes**: `results/experiment_notes.txt`
+* **Fraction-Based Model**: `runs/detect/results/baseline_better/weights/best.pt`
+* **Full-Data Comparison Model**: `runs/detect/results/baseline_full_6epoch/weights/best.pt`
+* **Comparison Runs**:
+
+  * `runs/detect/results/baseline_fast/`
+  * `runs/detect/results/baseline_better/`
+  * `runs/detect/results/baseline_full_6epoch/`
+* **Inference Outputs**:
+
+  * `runs/detect/results/infer_better/`
+  * `runs/detect/results/infer_full_6epoch/`
+  * `runs/detect/results/docker_infer/`
+* **Comparison Images**:
+
+  * `results/example1_before.jpg`
+  * `results/example1_after.jpg`
+  * `results/example2_before.jpg`
+  * `results/example2_after.jpg`
+* **Docker Files**:
+
+  * `Dockerfile`
+  * `.dockerignore`
+  * `requirements-docker.txt`
+* **Notes**:
+
+  * `results/experiment_notes.txt`
+  * `results/qualitative_analysis.txt`
